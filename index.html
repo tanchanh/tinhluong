@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tính Lương - D.T.Chánh</title>
+    <style>
+        /* Thiết lập font chữ hệ thống mặc định, không tải từ ngoài */
+        :root {
+            --primary-color: #69009a;
+            --background-color-1: #ffffff;
+            --background-color-2: #f9f0fd;
+            --background-color-3: #f3f3f3;
+            --border-color: #b8b8b8;
+            --input-bg: var(--background-color-3);
+        }
+
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            margin: 0;
+            padding: 1rem;
+            /* Padding nhỏ để tận dụng màn hình điện thoại */
+            background-color: var(--background-color-1);
+            color: #000;
+            line-height: 1.5;
+        }
+
+        /* Yêu cầu kích thước font */
+        h1 {
+            font-size: 2rem;
+            margin: 0 0 0 0;
+            color: var(--primary-color);
+            text-transform: uppercase;
+            text-align: center;
+        }
+
+        h2 {
+            font-size: 1.4rem;
+            margin: 0 0 0.5rem 0;
+            color: var(--primary-color);
+            border-left: 0.5rem solid var(--primary-color);
+            padding-left: 0.5rem;
+        }
+
+        label,
+        input,
+        span,
+        div {
+            font-size: 1.1rem;
+        }
+
+        /* Bố cục Form nhập liệu */
+        .input-group {
+            margin-bottom: 1rem;
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        input[type="number"] {
+            width: 100%;
+            padding: 0.8rem;
+            border: 2px solid var(--border-color);
+            /* Viền dày 2px theo yêu cầu */
+            border-radius: 4px;
+            background-color: var(--input-bg);
+            box-sizing: border-box;
+            /* Đảm bảo padding không làm vỡ khung */
+            font-weight: bold;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            background-color: var(--background-color-1);
+        }
+
+        /* Bảng kết quả */
+        .result-box {
+            border: 2px solid var(--primary-color);
+            border-radius: 4px;
+            padding: 1rem;
+            background-color: var(--background-color-2);
+            margin-top: 1rem;
+        }
+
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: .5rem 0;
+            border-bottom: 2px dashed var(--border-color);
+        }
+
+        .result-item:last-child {
+            border-bottom: none;
+        }
+
+        .result-value {
+            font-weight: bold;
+            text-align: right;
+        }
+
+        /* Tổng lương nổi bật */
+        .total-salary {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 1.5rem 0.5rem;
+            margin-top: 1.5rem;
+            border-radius: 0.4rem;
+            text-align: center;
+        }
+
+        .total-salary .label {
+            display: block;
+            font-size: 1.2rem;
+            margin-bottom: 0.5rem;
+            opacity: 0.9;
+        }
+
+        .total-salary .value {
+            display: block;
+            font-size: 1.7rem;
+            font-weight: bold;
+        }
+
+        /* Responsive đơn giản */
+        @media (min-width: 768px) {
+            body {
+                padding: 2rem;
+            }
+
+            .grid-2-cols {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 1rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Tính Lương</h1>
+    <div style="text-align: right; font-size: 1.3rem; color: #000000; margin: 0 0 1rem 0;">
+        D.T.Chánh</div>
+
+    <div>
+        <h2>Nhập Thông Tin</h2>
+
+        <div class="grid-2-cols">
+            <div class="input-group">
+                <label for="luongCoSo">Lương Cơ Sở (x 1.000 đ)</label>
+                <input type="number" id="luongCoSo" value="2340">
+            </div>
+
+            <div class="input-group">
+                <label for="heSo">Hệ Số Lương</label>
+                <input type="number" id="heSo" step="0.01" value="3.96">
+            </div>
+        </div>
+
+        <div class="grid-2-cols">
+            <div class="input-group">
+                <label for="ptThamNien">Thâm Niên (%)</label>
+                <input type="number" id="ptThamNien" step="1" value="19">
+            </div>
+
+            <div class="input-group">
+                <label for="ptPhuCap">Phụ Cấp (%)</label>
+                <input type="number" id="ptPhuCap" step="1" value="35">
+            </div>
+        </div>
+
+        <div class="input-group">
+            <label for="ptBHXH">Trừ Bảo Hiểm XH (%)</label>
+            <input type="number" id="ptBHXH" step="0.5" value="10.5">
+        </div>
+    </div>
+
+    <div>
+        <h2>Kết Quả (x 1.000 đ)</h2>
+
+        <div class="result-box">
+            <div class="result-item">
+                <span class="result-label">Lương Cơ Bản:</span>
+                <span class="result-value" id="kqLuongHeSo">0</span>
+            </div>
+
+            <div class="result-item">
+                <span class="result-label">Thâm Niên:</span>
+                <span class="result-value" id="kqThamNien">0</span>
+            </div>
+
+            <div class="result-item">
+                <span class="result-label">Phụ Cấp:</span>
+                <span class="result-value" id="kqPhuCap">0</span>
+            </div>
+
+            <div class="result-item">
+                <span class="result-label" style="color: #c0392b;">Trừ Bảo Hiểm:</span>
+                <span class="result-value" style="color: #c0392b;" id="kqBHXH">0</span>
+            </div>
+        </div>
+
+        <div class="total-salary">
+            <span class="label">TỔNG THỰC LĨNH</span>
+            <span class="value" id="kqThucLinh">0 đ</span>
+        </div>
+    </div>
+
+    <script>
+        // Hàm định dạng tiền tệ Việt Nam
+        function formatMoney(amount) {
+            return Math.round(amount).toLocaleString('vi-VN');
+        }
+
+        function calculate() {
+            // 1. Lấy giá trị đầu vào
+            const heSo = parseFloat(document.getElementById('heSo').value) || 0;
+            const luongCoSo = parseFloat(document.getElementById('luongCoSo').value) || 0;
+            const ptThamNien = parseFloat(document.getElementById('ptThamNien').value) || 0;
+            const ptPhuCap = parseFloat(document.getElementById('ptPhuCap').value) || 0;
+            const ptBHXH = parseFloat(document.getElementById('ptBHXH').value) || 0;
+
+            // 2. Tính toán
+
+            // Tiền lương hệ số = Hệ số * Lương cơ sở
+            const tienLuongHeSo = heSo * luongCoSo;
+
+            // Tiền thâm niên = Tiền lương hệ số * % Thâm niên
+            const tienThamNien = tienLuongHeSo * (ptThamNien / 100);
+
+            // Tiền phụ cấp = Tiền lương hệ số * % Phụ cấp
+            const tienPhuCap = tienLuongHeSo * (ptPhuCap / 100);
+
+            // Tổng lương ngạch bậc + thâm niên (Dùng để tính BHXH)
+            const tongLuongVaThamNien = tienLuongHeSo + tienThamNien;
+
+            // Tiền BHXH (Tính trên tổng lương + thâm niên)
+            const tienBHXH = tongLuongVaThamNien * (ptBHXH / 100);
+
+            // Thực lĩnh = (Lương HS + Thâm niên + Phụ cấp) - BHXH
+            const thucLinh = (tienLuongHeSo + tienThamNien + tienPhuCap) - tienBHXH;
+
+            // 3. Hiển thị kết quả
+            document.getElementById('kqLuongHeSo').textContent = formatMoney(tienLuongHeSo);
+            document.getElementById('kqThamNien').textContent = formatMoney(tienThamNien);
+            document.getElementById('kqPhuCap').textContent = formatMoney(tienPhuCap);
+            document.getElementById('kqBHXH').textContent = formatMoney(tienBHXH);
+            document.getElementById('kqThucLinh').textContent = formatMoney(thucLinh * 1000) + " đ";
+        }
+
+        // Lắng nghe sự kiện thay đổi trên tất cả các ô input
+        const inputs = document.querySelectorAll('input');
+        inputs.forEach(input => {
+            input.addEventListener('input', calculate);
+            input.addEventListener('change', calculate); // Cho chắc chắn trên mobile
+        });
+
+        // Tính toán ngay khi mở trang
+        calculate();
+    </script>
+</body>
+
+</html>
