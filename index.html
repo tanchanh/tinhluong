@@ -62,7 +62,8 @@
             margin-bottom: 0.5rem;
         }
 
-        input[type="number"] {
+        input[type="number"],
+        input[type="text"] {
             width: 100%;
             padding: 0.8rem;
             border: 2px solid var(--border-color);
@@ -112,7 +113,7 @@
             color: white;
             padding: 1.5rem 0.5rem;
             margin-top: 1.5rem;
-            margin-bottom: 4rem;
+            margin-bottom: 1.5rem; /* Giảm bớt để nhường chỗ cho nút bấm */
             border-radius: 0.4rem;
             text-align: center;
         }
@@ -128,6 +129,136 @@
             display: block;
             font-size: 1.7rem;
             font-weight: bold;
+        }
+
+        /* Khối nút bấm chức năng */
+        .action-buttons-group {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 4rem;
+        }
+
+        .btn-action {
+            flex: 1;
+            padding: 0.8rem;
+            font-size: 1.1rem;
+            font-weight: bold;
+            background-color: var(--background-color-1);
+            color: var(--primary-color);
+            border: 2px solid var(--primary-color);
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: all 0.1s ease;
+        }
+
+        .btn-action:active {
+            background-color: var(--background-color-2);
+        }
+
+        /* Giao diện Popup Modal đồng bộ */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease-in-out;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-content {
+            background-color: var(--background-color-1);
+            border: 2px solid var(--primary-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            width: 90%;
+            max-width: 24rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            box-sizing: border-box;
+        }
+
+        .modal-content h3 {
+            margin-top: 0;
+            color: var(--primary-color);
+            font-size: 1.3rem;
+            text-transform: uppercase;
+            text-align: center;
+            border-bottom: 2px solid var(--background-color-2);
+            padding-bottom: 0.5rem;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .modal-buttons button {
+            flex: 1;
+            padding: 0.8rem;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.1s ease;
+        }
+
+        .btn-confirm {
+            background-color: var(--primary-color);
+            color: white;
+            border: 2px solid var(--primary-color);
+        }
+
+        .btn-confirm:active {
+            background-color: #500075;
+            border-color: #500075;
+        }
+
+        .btn-cancel {
+            background-color: white;
+            color: var(--primary-color);
+            border: 2px solid var(--primary-color);
+        }
+
+        .btn-cancel:active {
+            background-color: var(--background-color-2);
+        }
+
+        /* Toast thông báo nhẹ nhàng */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background-color: #2e7d32;
+            color: white;
+            padding: 0.8rem 1.5rem;
+            border-radius: 4px;
+            font-weight: bold;
+            z-index: 2000;
+            opacity: 0;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
         }
 
         /* Responsive đơn giản */
@@ -213,6 +344,27 @@
             <span class="label">TỔNG THỰC LĨNH</span>
             <span class="value" id="kqThucLinh"></span>
         </div>
+
+        <!-- Khối 2 nút bấm nằm ngang -->
+        <div class="action-buttons-group">
+            <button id="copyBtn" class="btn-action">📋 Sao Chép</button>
+            <button id="saveBtn" class="btn-action">💾 Lưu File</button>
+        </div>
+    </div>
+
+    <!-- Hộp thoại Popup Modal nhập tên đồng bộ -->
+    <div id="nameModal" class="modal-overlay">
+        <div class="modal-content">
+            <h3>Xuất Phiếu Lương</h3>
+            <div class="input-group" style="margin-top: 1rem;">
+                <label for="modalNameInput">Họ và Tên Người Nhận</label>
+                <input type="text" id="modalNameInput" placeholder="">
+            </div>
+            <div class="modal-buttons">
+                <button id="modalCancelBtn" class="btn-cancel">Hủy</button>
+                <button id="modalConfirmBtn" class="btn-confirm">Đồng Ý</button>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -257,15 +409,156 @@
             document.getElementById('kqThucLinh').textContent = formatMoney(thucLinh * 1000) + " đ";
         }
 
-        // Lắng nghe sự kiện thay đổi trên tất cả các ô input
-        const inputs = document.querySelectorAll('input');
-        inputs.forEach(input => {
+        // Lắng nghe sự kiện thay đổi trên các ô nhập số
+        const numInputs = document.querySelectorAll('input[type="number"]');
+        numInputs.forEach(input => {
             input.addEventListener('input', calculate);
-            input.addEventListener('change', calculate); // Cho chắc chắn trên mobile
+            input.addEventListener('change', calculate);
         });
 
         // Tính toán ngay khi mở trang
         calculate();
+
+        // --- CÁC TÍNH NĂNG MỚI ĐƯỢC TÍCH HỢP ---
+
+        let activeAction = null; // Lưu trữ hành động 'copy' hoặc 'save'
+        const nameModal = document.getElementById('nameModal');
+        const modalNameInput = document.getElementById('modalNameInput');
+        const modalConfirmBtn = document.getElementById('modalConfirmBtn');
+        const modalCancelBtn = document.getElementById('modalCancelBtn');
+
+        // Hàm lấy ngày xuất phiếu hiện tại theo định dạng DD/MM/YYYY
+        function getFormattedDate() {
+            const today = new Date();
+            const dd = String(today.getDate()).padStart(2, '0');
+            const mm = String(today.getMonth() + 1).padStart(2, '0');
+            const yyyy = today.getFullYear();
+            return `${dd}/${mm}/${yyyy}`;
+        }
+
+        // Hàm tạo nội dung văn bản phiếu lương có căn phải số tuyệt đối
+        function generateSalarySlipText(name) {
+            const heSo = parseFloat(document.getElementById('heSo').value) || 0;
+            const luongCoSo = parseFloat(document.getElementById('luongCoSo').value) || 0;
+            const ptThamNien = parseFloat(document.getElementById('ptThamNien').value) || 0;
+            const ptPhuCap = parseFloat(document.getElementById('ptPhuCap').value) || 0;
+            const ptBHXH = parseFloat(document.getElementById('ptBHXH').value) || 0;
+
+            const baseLuongCoSo = Math.round(luongCoSo * 1000);
+            const baseTienLuongHeSo = Math.round(heSo * luongCoSo * 1000);
+            const baseTienThamNien = Math.round(baseTienLuongHeSo * (ptThamNien / 100));
+            const baseTienPhuCap = Math.round(baseTienLuongHeSo * (ptPhuCap / 100));
+            const baseTongLuongVaThamNien = baseTienLuongHeSo + baseTienThamNien;
+            const baseTienBHXH = Math.round(baseTongLuongVaThamNien * (ptBHXH / 100));
+            const baseThucLinh = (baseTienLuongHeSo + baseTienThamNien + baseTienPhuCap) - baseTienBHXH;
+
+            const formatVal = (val) => Math.round(val).toLocaleString('vi-VN');
+
+            // Hàm căn phải: Đảm bảo độ rộng của mỗi dòng luôn cố định là 36 ký tự
+            function formatRowRight(label, value, totalWidth = 36) {
+                const left = " - " + label + ":";
+                const spacesNeeded = totalWidth - left.length - value.length;
+                const spaces = " ".repeat(spacesNeeded > 0 ? spacesNeeded : 1);
+                return left + spaces + value;
+            }
+
+            let text = "=======================================\n";
+            text += "            PHIẾU TÍNH LƯƠNG           \n";
+            text += "=======================================\n";
+            text += ` Họ tên: ${name ? name.toUpperCase() : ""}\n`;
+            text += ` Ngày xuất: ${getFormattedDate()}\n`;
+            text += "---------------------------------------\n";
+            text += " [1] THÔNG SỐ NHẬP VÀO:\n";
+            text += formatRowRight("Lương cơ sở", formatVal(baseLuongCoSo) + " đ") + "\n";
+            text += formatRowRight("Hệ số lương", heSo.toLocaleString('vi-VN')) + "\n";
+            text += formatRowRight("Thâm niên", ptThamNien.toLocaleString('vi-VN') + "%") + "\n";
+            text += formatRowRight("Phụ cấp", ptPhuCap.toLocaleString('vi-VN') + "%") + "\n";
+            text += formatRowRight("Trừ BHXH", ptBHXH.toLocaleString('vi-VN') + "%") + "\n";
+            text += "---------------------------------------\n";
+            text += " [2] KẾT QUẢ TÍNH TOÁN:\n";
+            text += formatRowRight("Lương cơ bản", formatVal(baseTienLuongHeSo) + " đ") + "\n";
+            text += formatRowRight("Tiền thâm niên", formatVal(baseTienThamNien) + " đ") + "\n";
+            text += formatRowRight("Tiền phụ cấp", formatVal(baseTienPhuCap) + " đ") + "\n";
+            text += formatRowRight("Tiền khấu trừ BH", "-" + formatVal(baseTienBHXH) + " đ") + "\n";
+            text += "---------------------------------------\n";
+            
+            // Căn phải cho dòng Tổng Thực Lĩnh
+            const totalLabel = " TỔNG THỰC LĨNH:";
+            const totalVal = formatVal(baseThucLinh) + " đ";
+            const totalSpacesNeeded = 36 - totalLabel.length - totalVal.length;
+            const totalSpaces = " ".repeat(totalSpacesNeeded > 0 ? totalSpacesNeeded : 1);
+            text += totalLabel + totalSpaces + totalVal + "\n";
+            
+            text += "=======================================";
+
+            return text;
+        }
+
+        // Hiện Toast thông báo mượt mà
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => { toast.classList.add('show'); }, 50);
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => { toast.remove(); }, 300);
+            }, 2500);
+        }
+
+        // Quản lý Modal
+        function openModal(action) {
+            activeAction = action;
+            modalNameInput.value = ""; // Xoá sạch khung nhập
+            nameModal.classList.add('active');
+            modalNameInput.focus();
+        }
+
+        function closeModal() {
+            nameModal.classList.remove('active');
+            activeAction = null;
+        }
+
+        modalCancelBtn.addEventListener('click', closeModal);
+        nameModal.addEventListener('click', (e) => {
+            if (e.target === nameModal) closeModal();
+        });
+
+        // Xử lý khi người dùng đồng ý xuất phiếu
+        modalConfirmBtn.addEventListener('click', () => {
+            const name = modalNameInput.value.trim();
+            // Không bắt buộc nhập tên - Proceed trực tiếp dù trống
+
+            const slipText = generateSalarySlipText(name);
+
+            if (activeAction === 'copy') {
+                navigator.clipboard.writeText(slipText).then(() => {
+                    showToast('✔ Đã sao chép phiếu lương!');
+                }).catch(err => {
+                    console.error('Lỗi sao chép: ', err);
+                });
+            } else if (activeAction === 'save') {
+                // Thêm ký tự BOM "\uFEFF" để tệp TXT nhận đúng định dạng UTF-8 trên Windows
+                const blob = new Blob(["\uFEFF" + slipText], { type: 'text/plain;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                // Nếu không có tên, đặt tên file mặc định là Phieu_Luong.txt
+                const safeName = name ? name.replace(/[^a-zA-Z0-9\sàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/gi, '').replace(/\s+/g, '_') : '';
+                a.download = safeName ? `Phieu_Luong_${safeName}.txt` : `Phieu_Luong.txt`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                showToast('💾 Đã lưu tệp phiếu lương!');
+            }
+            closeModal();
+        });
+
+        // Sự kiện gán vào hai nút bấm chính
+        document.getElementById('copyBtn').addEventListener('click', () => { openModal('copy'); });
+        document.getElementById('saveBtn').addEventListener('click', () => { openModal('save'); });
     </script>
 </body>
 
