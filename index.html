@@ -436,7 +436,7 @@
             return `${dd}/${mm}/${yyyy}`;
         }
 
-        // Hàm tạo nội dung văn bản phiếu lương có căn phải số tuyệt đối
+        // Hàm tạo nội dung văn bản phiếu lương có căn phải số tuyệt đối (Khổ 29 ký tự)
         function generateSalarySlipText(name) {
             const heSo = parseFloat(document.getElementById('heSo').value) || 0;
             const luongCoSo = parseFloat(document.getElementById('luongCoSo').value) || 0;
@@ -454,42 +454,35 @@
 
             const formatVal = (val) => Math.round(val).toLocaleString('vi-VN');
 
-            // Hàm căn phải: Đảm bảo độ rộng của mỗi dòng luôn cố định là 36 ký tự
-            function formatRowRight(label, value, totalWidth = 36) {
-                const left = " - " + label + ":";
+            // Hàm căn phải: Đảm bảo độ rộng của mỗi dòng luôn cố định là 28 ký tự (vừa vặn khung 29 ký tự)
+            function formatRowRight(label, value, totalWidth = 28) {
+                const left = " " + label + ":";
                 const spacesNeeded = totalWidth - left.length - value.length;
                 const spaces = " ".repeat(spacesNeeded > 0 ? spacesNeeded : 1);
                 return left + spaces + value;
             }
 
-            let text = "=======================================\n";
-            text += "            PHIẾU TÍNH LƯƠNG           \n";
-            text += "=======================================\n";
+            let text = "=============================\n";
+            text += "      PHIẾU TÍNH LƯƠNG       \n";
+            text += "=============================\n";
             text += ` Họ tên: ${name ? name.toUpperCase() : ""}\n`;
             text += ` Ngày xuất: ${getFormattedDate()}\n`;
-            text += "---------------------------------------\n";
+            text += "-----------------------------\n";
             text += " [1] THÔNG SỐ NHẬP VÀO:\n";
             text += formatRowRight("Lương cơ sở", formatVal(baseLuongCoSo) + " đ") + "\n";
             text += formatRowRight("Hệ số lương", heSo.toLocaleString('vi-VN')) + "\n";
             text += formatRowRight("Thâm niên", ptThamNien.toLocaleString('vi-VN') + "%") + "\n";
             text += formatRowRight("Phụ cấp", ptPhuCap.toLocaleString('vi-VN') + "%") + "\n";
             text += formatRowRight("Trừ BHXH", ptBHXH.toLocaleString('vi-VN') + "%") + "\n";
-            text += "---------------------------------------\n";
+            text += "-----------------------------\n";
             text += " [2] KẾT QUẢ TÍNH TOÁN:\n";
             text += formatRowRight("Lương cơ bản", formatVal(baseTienLuongHeSo) + " đ") + "\n";
-            text += formatRowRight("Tiền thâm niên", formatVal(baseTienThamNien) + " đ") + "\n";
-            text += formatRowRight("Tiền phụ cấp", formatVal(baseTienPhuCap) + " đ") + "\n";
-            text += formatRowRight("Tiền khấu trừ BH", "-" + formatVal(baseTienBHXH) + " đ") + "\n";
-            text += "---------------------------------------\n";
-            
-            // Căn phải cho dòng Tổng Thực Lĩnh
-            const totalLabel = " TỔNG THỰC LĨNH:";
-            const totalVal = formatVal(baseThucLinh) + " đ";
-            const totalSpacesNeeded = 36 - totalLabel.length - totalVal.length;
-            const totalSpaces = " ".repeat(totalSpacesNeeded > 0 ? totalSpacesNeeded : 1);
-            text += totalLabel + totalSpaces + totalVal + "\n";
-            
-            text += "=======================================";
+            text += formatRowRight("Thâm niên", formatVal(baseTienThamNien) + " đ") + "\n";
+            text += formatRowRight("Phụ cấp", formatVal(baseTienPhuCap) + " đ") + "\n";
+            text += formatRowRight("Trừ BH", "-" + formatVal(baseTienBHXH) + " đ") + "\n";
+            text += "-----------------------------\n";
+            text += formatRowRight("TỔNG", formatVal(baseThucLinh) + " đ") + "\n";
+            text += "=============================";
 
             return text;
         }
