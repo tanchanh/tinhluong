@@ -18,11 +18,11 @@
 * **Xuất phiếu lương chuẩn hóa:** Tích hợp mô hình Popup Modal thu thập thông tin họ tên người nhận để kết xuất thành một Phiếu tính lương có cấu trúc định dạng hoàn chỉnh, căn lề phải đối xứng tuyệt đối (Khổ 28 ký tự cố định), sẵn sàng hiển thị trên các thiết bị.
 
 * **Đa phương thức kết xuất:**
-* Hỗ trợ nút **Sao Chép** nhanh toàn bộ nội dung phiếu lương dạng văn bản vào bộ nhớ đệm (Clipboard).
+* Hỗ trợ nút **Sao Chép** nhanh toàn bộ nội dung phiếu lương dạng ảnh vào bộ nhớ đệm (Clipboard).
 
-* Hỗ trợ nút **Lưu File** để trích xuất phiếu lương thành tệp tin `.txt` mã hóa UTF-8 (tích hợp ký tự BOM để tương thích tốt với Windows), tự động đặt tên tệp tin theo họ tên người nhận.
+* Hỗ trợ nút **Lưu File** để trích xuất phiếu lương thành tệp tin ảnh `.png`, tự động đặt tên tệp tin theo họ tên người nhận.
 
-* **Trải nghiệm giao diện đồng bộ:** Thiết kế tinh gọn, responsive linh hoạt theo kích thước màn hình thiết bị di động và máy tính. Sử dụng các thanh Toast thông báo trạng thái mượt mà để phản hồi hành vi người dùng.
+* **Trải nghiệm giao diện đồng bộ:** Thiết kế tinh gọn, responsive linh hoạt theo kích thước màn hình thiết bị di động và máy tính.
 
 ---
 
