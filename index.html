@@ -152,7 +152,7 @@
             align-items: center;
             justify-content: center;
             gap: 0.5rem;
-            transition: all 0.1s ease;
+            transition: all 0.2s ease;
         }
 
         .btn-action:active {
@@ -237,6 +237,33 @@
 
         .btn-cancel:active {
             background-color: var(--background-color-2);
+        }
+
+        /* Giao diện Popup dự phòng hiển thị ảnh trên Mobile */
+        .fallback-modal-content {
+            background-color: var(--background-color-1);
+            border: 2px solid var(--primary-color);
+            border-radius: 8px;
+            padding: 1.2rem;
+            width: 95%;
+            max-width: 26rem;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            box-sizing: border-box;
+        }
+
+        .fallback-modal-content p {
+            font-size: 1.05rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+
+        .fallback-image-preview {
+            max-width: 100%;
+            max-height: 60vh;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
 
         /* Toast thông báo nhẹ nhàng */
@@ -348,7 +375,7 @@
         <!-- Khối 2 nút bấm nằm ngang -->
         <div class="action-buttons-group">
             <button id="copyBtn" class="btn-action">📋 Sao Chép</button>
-            <button id="saveBtn" class="btn-action">💾 Lưu File</button>
+            <button id="saveBtn" class="btn-action">💾 Lưu PNG</button>
         </div>
     </div>
 
@@ -366,6 +393,20 @@
             </div>
         </div>
     </div>
+
+    <!-- Hộp thoại Popup Dự phòng hiển thị ảnh trên Mobile -->
+    <div id="fallbackModal" class="modal-overlay">
+        <div class="fallback-modal-content">
+            <p>Trình duyệt không hỗ trợ tự động copy ảnh.<br>Vui lòng nhấn giữ ảnh dưới đây để Lưu hoặc Sao chép:</p>
+            <img id="fallbackImage" class="fallback-image-preview" src="" alt="Phiếu Lương">
+            <div style="margin-top: 1rem;">
+                <button id="fallbackCloseBtn" class="btn-confirm" style="width: 100%; padding: 0.8rem; border-radius: 4px; font-weight: bold; border: none; cursor: pointer;">Đóng</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Khung Canvas ẩn để vẽ ảnh phiếu lương 600x900px -->
+    <canvas id="hiddenCanvas" width="600" height="900" style="display: none;"></canvas>
 
     <script>
         // Hàm định dạng tiền tệ Việt Nam
@@ -427,6 +468,10 @@
         const modalConfirmBtn = document.getElementById('modalConfirmBtn');
         const modalCancelBtn = document.getElementById('modalCancelBtn');
 
+        const fallbackModal = document.getElementById('fallbackModal');
+        const fallbackImage = document.getElementById('fallbackImage');
+        const fallbackCloseBtn = document.getElementById('fallbackCloseBtn');
+
         // Hàm lấy ngày xuất phiếu hiện tại theo định dạng DD/MM/YYYY
         function getFormattedDate() {
             const today = new Date();
@@ -436,8 +481,51 @@
             return `${dd}/${mm}/${yyyy}`;
         }
 
-        // Hàm tạo nội dung văn bản phiếu lương có căn phải số tuyệt đối (Khổ 29 ký tự)
-        function generateSalarySlipText(name) {
+        // Hiện Toast thông báo mượt mà
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => { toast.classList.add('show'); }, 50);
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => { toast.remove(); }, 300);
+            }, 2500);
+        }
+
+        // Quản lý Modal nhập tên (Có tích hợp localStorage tự động điền)
+        function openModal(action) {
+            activeAction = action;
+            
+            // Tìm tên đã lưu trong bộ nhớ máy
+            const savedName = localStorage.getItem('savedUserName') || "";
+            modalNameInput.value = savedName; // Điền sẵn nếu có
+            
+            nameModal.classList.add('active');
+            modalNameInput.focus();
+            
+            // Tự động bôi đen toàn bộ chữ để người dùng dễ gõ đè tên mới
+            if (savedName) {
+                modalNameInput.select();
+            }
+        }
+
+        function closeModal() {
+            nameModal.classList.remove('active');
+            activeAction = null;
+        }
+
+        modalCancelBtn.addEventListener('click', closeModal);
+        nameModal.addEventListener('click', (e) => {
+            if (e.target === nameModal) closeModal();
+        });
+
+        // Hàm vẽ ảnh phiếu lương lên Canvas chuẩn kích thước 600x900px (Không viền, căn lề 20px)
+        function drawSlipOnCanvas(name) {
+            const canvas = document.getElementById('hiddenCanvas');
+            const ctx = canvas.getContext('2d');
+
             const heSo = parseFloat(document.getElementById('heSo').value) || 0;
             const luongCoSo = parseFloat(document.getElementById('luongCoSo').value) || 0;
             const ptThamNien = parseFloat(document.getElementById('ptThamNien').value) || 0;
@@ -484,67 +572,99 @@
             text += formatRowRight("TỔNG", formatVal(baseThucLinh) + " đ") + "\n";
             text += "=============================";
 
-            return text;
+            // 1. Tô nền trắng (Không vẽ viền 2px nữa)
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, 600, 900);
+
+            // 2. Chuyển đổi chuỗi văn bản thành mảng các dòng
+            const lines = text.split('\n');
+
+            // 3. In chữ lên Canvas sử dụng Consolas 32px (Chữ cách viền ảnh trái/phải khoảng ~21px)
+            ctx.fillStyle = '#000000';
+            ctx.font = 'bold 32px Consolas, monospace';
+
+            // Tính toán khoảng cách căn giữa hoàn hảo khối chữ 29 ký tự
+            const testLine = "=============================";
+            const lineWidth = ctx.measureText(testLine).width;
+            const startX = (600 - lineWidth) / 2; // Căn giữa tự động dựa trên độ rộng chữ thực tế
+            let startY = 58;                      // Điểm vẽ dọc đầu tiên cách viền ảnh ~20px
+            const lineSpacing = 38;               // Giãn cách dòng 38px cho cân đối
+
+            for (let i = 0; i < lines.length; i++) {
+                ctx.fillText(lines[i], startX, startY);
+                startY += lineSpacing;
+            }
+
+            // 4. In bản quyền Dương Tấn Chánh nghiêng 28px và căn giữa ở đáy ảnh (Y = 865px)
+            ctx.font = 'italic bold 28px Consolas, monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText('Dương Tấn Chánh', 300, 865);
+
+            // Trả lại căn lề mặc định cho các tiến trình khác
+            ctx.textAlign = 'left';
+            
+            return canvas;
         }
 
-        // Hiện Toast thông báo mượt mà
-        function showToast(message) {
-            const toast = document.createElement('div');
-            toast.className = 'toast';
-            toast.textContent = message;
-            document.body.appendChild(toast);
-            setTimeout(() => { toast.classList.add('show'); }, 50);
-            setTimeout(() => {
-                toast.classList.remove('show');
-                setTimeout(() => { toast.remove(); }, 300);
-            }, 2500);
-        }
-
-        // Quản lý Modal
-        function openModal(action) {
-            activeAction = action;
-            modalNameInput.value = ""; // Xoá sạch khung nhập
-            nameModal.classList.add('active');
-            modalNameInput.focus();
-        }
-
-        function closeModal() {
-            nameModal.classList.remove('active');
-            activeAction = null;
-        }
-
-        modalCancelBtn.addEventListener('click', closeModal);
-        nameModal.addEventListener('click', (e) => {
-            if (e.target === nameModal) closeModal();
-        });
-
-        // Xử lý khi người dùng đồng ý xuất phiếu
+        // Xử lý khi người dùng đồng ý xuất phiếu ảnh
         modalConfirmBtn.addEventListener('click', () => {
             const name = modalNameInput.value.trim();
-            // Không bắt buộc nhập tên - Proceed trực tiếp dù trống
+            
+            // Ghi nhớ họ tên thông minh vào localStorage nếu người dùng có gõ chữ
+            if (name) {
+                localStorage.setItem('savedUserName', name);
+            }
 
-            const slipText = generateSalarySlipText(name);
+            const canvas = drawSlipOnCanvas(name);
 
             if (activeAction === 'copy') {
-                navigator.clipboard.writeText(slipText).then(() => {
-                    showToast('✔ Đã sao chép phiếu lương!');
-                }).catch(err => {
-                    console.error('Lỗi sao chép: ', err);
-                });
+                const btn = document.getElementById('copyBtn');
+                
+                // Chuyển canvas thành blob để ghi đè vào clipboard dưới dạng ảnh PNG
+                canvas.toBlob((blob) => {
+                    if (!blob) {
+                        showToast('❌ Lỗi chuyển đổi ảnh!');
+                        return;
+                    }
+                    
+                    const item = [new ClipboardItem({ "image/png": blob })];
+                    
+                    navigator.clipboard.write(item).then(() => {
+                        showToast('✔ Đã sao chép ảnh phiếu lương!');
+                        
+                        // Hiệu ứng thay đổi nút "Sao chép" -> "✔ Đã chép" màu Tím trong 3 giây
+                        btn.style.color = 'var(--primary-color)';
+                        btn.style.borderColor = 'var(--primary-color)';
+                        btn.style.backgroundColor = 'var(--background-color-2)';
+                        btn.textContent = '✔ Đã chép';
+                        
+                        setTimeout(() => {
+                            btn.style.color = '';
+                            btn.style.borderColor = '';
+                            btn.style.backgroundColor = '';
+                            btn.textContent = '📋 Sao Chép';
+                        }, 3000);
+
+                    }).catch(err => {
+                        console.warn('Clipboard không hỗ trợ ghi trực tiếp: ', err);
+                        // Kích hoạt cơ chế hiển thị ảnh dự phòng trên màn hình để người dùng nhấn giữ
+                        const imgData = canvas.toDataURL("image/png");
+                        openFallbackModal(imgData);
+                    });
+                }, "image/png");
+
             } else if (activeAction === 'save') {
-                // Thêm ký tự BOM "\uFEFF" để tệp TXT nhận đúng định dạng UTF-8 trên Windows
-                const blob = new Blob(["\uFEFF" + slipText], { type: 'text/plain;charset=utf-8' });
-                const url = URL.createObjectURL(blob);
+                const url = canvas.toDataURL("image/png");
                 const a = document.createElement('a');
                 a.href = url;
-                // Nếu không có tên, đặt tên file mặc định là Phieu_Luong.txt
+                
                 const safeName = name ? name.replace(/[^a-zA-Z0-9\sàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/gi, '').replace(/\s+/g, '_') : '';
-                a.download = safeName ? `Phieu_Luong_${safeName}.txt` : `Phieu_Luong.txt`;
+                a.download = safeName ? `Phieu_Luong_${safeName}.png` : `Phieu_Luong.png`;
+                
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-                showToast('💾 Đã lưu tệp phiếu lương!');
+                showToast('💾 Đã lưu ảnh phiếu lương!');
             }
             closeModal();
         });
@@ -552,6 +672,61 @@
         // Sự kiện gán vào hai nút bấm chính
         document.getElementById('copyBtn').addEventListener('click', () => { openModal('copy'); });
         document.getElementById('saveBtn').addEventListener('click', () => { openModal('save'); });
+
+        /* 
+        =====================================================================
+        📝 GHI CHÚ: MÃ LỆNH COPY CHỮ THUẦN TÚY (DÙNG ĐỂ THAM KHẢO KHI CẦN)
+        =====================================================================
+        // Hàm tạo nội dung văn bản phiếu lương có căn phải số tuyệt đối (Khổ 29 ký tự)
+        function generateSalarySlipText(name) {
+            const heSo = parseFloat(document.getElementById('heSo').value) || 0;
+            const luongCoSo = parseFloat(document.getElementById('luongCoSo').value) || 0;
+            const ptThamNien = parseFloat(document.getElementById('ptThamNien').value) || 0;
+            const ptPhuCap = parseFloat(document.getElementById('ptPhuCap').value) || 0;
+            const ptBHXH = parseFloat(document.getElementById('ptBHXH').value) || 0;
+
+            const baseLuongCoSo = Math.round(luongCoSo * 1000);
+            const baseTienLuongHeSo = Math.round(heSo * luongCoSo * 1000);
+            const baseTienThamNien = Math.round(baseTienLuongHeSo * (ptThamNien / 100));
+            const baseTienPhuCap = Math.round(baseTienLuongHeSo * (ptPhuCap / 100));
+            const baseTongLuongVaThamNien = baseTienLuongHeSo + baseTienThamNien;
+            const baseTienBHXH = Math.round(baseTongLuongVaThamNien * (ptBHXH / 100));
+            const baseThucLinh = (baseTienLuongHeSo + baseTienThamNien + baseTienPhuCap) - baseTienBHXH;
+
+            const formatVal = (val) => Math.round(val).toLocaleString('vi-VN');
+
+            function formatRowRight(label, value, totalWidth = 28) {
+                const left = " " + label + ":";
+                const spacesNeeded = totalWidth - left.length - value.length;
+                const spaces = " ".repeat(spacesNeeded > 0 ? spacesNeeded : 1);
+                return left + spaces + value;
+            }
+
+            let text = "=============================\n";
+            text += "      PHIẾU TÍNH LƯƠNG       \n";
+            text += "=============================\n";
+            text += ` Họ tên: ${name ? name.toUpperCase() : ""}\n`;
+            text += ` Ngày xuất: ${getFormattedDate()}\n`;
+            text += "-----------------------------\n";
+            text += " [1] THÔNG SỐ NHẬP VÀO:\n";
+            text += formatRowRight("Lương cơ sở", formatVal(baseLuongCoSo) + " đ") + "\n";
+            text += formatRowRight("Hệ số lương", heSo.toLocaleString('vi-VN')) + "\n";
+            text += formatRowRight("Thâm niên", ptThamNien.toLocaleString('vi-VN') + "%") + "\n";
+            text += formatRowRight("Phụ cấp", ptPhuCap.toLocaleString('vi-VN') + "%") + "\n";
+            text += formatRowRight("Trừ BHXH", ptBHXH.toLocaleString('vi-VN') + "%") + "\n";
+            text += "-----------------------------\n";
+            text += " [2] KẾT QUẢ TÍNH TOÁN:\n";
+            text += formatRowRight("Lương cơ bản", formatVal(baseTienLuongHeSo) + " đ") + "\n";
+            text += formatRowRight("Thâm niên", formatVal(baseTienThamNien) + " đ") + "\n";
+            text += formatRowRight("Phụ cấp", formatVal(baseTienPhuCap) + " đ") + "\n";
+            text += formatRowRight("Trừ BH", "-" + formatVal(baseTienBHXH) + " đ") + "\n";
+            text += "-----------------------------\n";
+            text += formatRowRight("TỔNG", formatVal(baseThucLinh) + " đ") + "\n";
+            text += "=============================";
+
+            return text;
+        }
+        */
     </script>
 </body>
 
